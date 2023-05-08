@@ -1,0 +1,113 @@
+---
+version: '2'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "32181:32181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes: 
+      - zoodata:/var/lib/zookeeper/data
+      - zoolog:/var/lib/zookeeper/log
+
+  kafka:
+    image: nashtech/kafka:latest
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:32181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    volumes: 
+      - kafkadata:/var/lib/kafka/data
+	  
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:0.28.2
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    depends_on:
+      - kafka
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_BOOTSTRAP_SERVERS: kafka:9092
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+    volumes:
+      - ksqldbserverudfs:/opt/ksqldb-udfs
+	  
+  ksqldb-cli:
+    image: confluentinc/ksqldb-cli:0.28.2
+    container_name: ksqldb-cli
+    depends_on:
+      - kafka
+      - ksqldb-server
+    entrypoint: /bin/sh
+    tty: true
+    volumes:
+      - ksqldbcliscripts:/data/scripts/
+	
+  postgres-source-1:
+    image: postgres
+    container_name: postgres-source-1
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  postgres-source-2:
+    image: postgres
+    container_name: postgres-source-2
+    hostname: postgres-source-2
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata2:/var/lib/postgresql/data
+	  
+  postgres-sink:
+    image: postgres
+    container_name: postgres-sink
+    hostname: postgres-sink-hostname
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata_sink:/var/lib/postgresql/data
+	
+  mysql-source:
+    image: mysql
+    container_name: mysql-source
+    hostname: mysql-source-hostname
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_USER: 'test'
+      MYSQL_PASS: 'pass'
+    volumes:
+      - mysql_source:/var/lib/mysql
+
+volumes:
+  zoodata:
+  zoolog:
+  kafkadata:
+  ksqldbserverudfs:
+  ksqldbcliscripts:
+  pgdata:
+  pgdata2:
+  pgdata_sink:
+  mysql_source:
