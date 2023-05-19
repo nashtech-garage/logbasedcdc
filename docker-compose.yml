@@ -1,4 +1,3 @@
----
 version: '2'
 
 services:
@@ -89,17 +88,6 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - pgdata_sink:/var/lib/postgresql/data
-	
-  mysql-source:
-    image: mysql
-    container_name: mysql-source
-    hostname: mysql-source-hostname
-    environment:
-      MYSQL_ROOT_PASSWORD: mysql
-      MYSQL_USER: 'test'
-      MYSQL_PASS: 'pass'
-    volumes:
-      - mysql_source:/var/lib/mysql
 
 volumes:
   zoodata:
@@ -110,4 +98,3 @@ volumes:
   pgdata:
   pgdata2:
   pgdata_sink:
-  mysql_source:
