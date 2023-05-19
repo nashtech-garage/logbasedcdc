@@ -47,11 +47,11 @@ sudo docker build -t nashtech/kafka .
 sudo docker-compose up -d
 
 
-# Steps to create source PosgreeSQL tables:
+# Steps to create PosgreeSQL source 1 tables:
 
-1. Access source PostgreSQL container
+1. Access PostgreSQL source 1 container
 
-sudo docker exec -it  postgres-source /bin/bash
+sudo docker exec -it  postgres-source-1 /bin/bash
 
 psql -U postgres
 
@@ -61,7 +61,15 @@ CREATE TABLE users(user_id INTEGER, first_name VARCHAR(200), last_name VARCHAR(2
 
 INSERT INTO users VALUES(1, 'first 1', 'last 1');
 
-3. Create Wages table and insert 1 record
+# Steps to create PosgreeSQL source 2 tables:
+
+1. Access PostgreSQL source 2 container
+
+sudo docker exec -it  postgres-source-2 /bin/bash
+
+psql -U postgres
+
+2. Create Wages table and insert 1 record
 
 CREATE TABLE wages(user_id INTEGER, wage integer, PRIMARY KEY (user_id));
 
@@ -69,29 +77,21 @@ INSERT INTO wages VALUES(1, '1000');
 
 
 
-# Steps to create sink PosgreeSQL tables:
+# Steps to create PosgreeSQL sink tables:
 
-1. Access sink PostgreSQL container
+1. Access PostgreSQL sink container
 
 sudo docker exec -it  postgres-sink /bin/bash
 
 psql -U postgres
 
-2. Create Users table
-
-CREATE TABLE users(user_id INTEGER, first_name VARCHAR(200), last_name VARCHAR(200), PRIMARY KEY (user_id));
-
-3. Create Wages table 
-
-CREATE TABLE wages(user_id INTEGER, wage integer, PRIMARY KEY (user_id));
-
-4. Create User_Wages table 
+2. Create User_Wages table 
 
 CREATE TABLE user_wages(user_id INTEGER, full_name VARCHAR(200), wage integer, PRIMARY KEY (user_id));
 
 
 
-# Steps to create source Kafka topics:
+# Steps to create Kafka source topics:
 
 1. Access Kafka container
 
@@ -101,9 +101,9 @@ sudo docker exec -t -i kafka /bin/bash
 
 cd /bin
 
-connect-standalone /config/connect-standalone.properties /config/connect-postgres-source.properties /config/connect-postgres-sink-users.properties /config/connect-postgres-sink-wages.properties /config/connect-postgres-sink-user-wages.properties
+connect-standalone /config/connect-standalone.properties /config/connect-postgres-source.properties /config/connect-postgres-source-2.properties  /config/connect-postgres-sink-user-wages.properties
 
-3. Check source Kafka topics
+3. Check Kafka source topics
 
 kafka-topics --list --bootstrap-server localhost:9092
 
@@ -168,81 +168,47 @@ PARTITION BY '{"schema":{"type":"struct","fields":[{"type":"int32","optional":fa
 ;
 
 
-# Steps to test the context 1:
+# Steps to test the context:
 
 1. Test case of "insert"
 
-Access sink PostgreSQL container and check if a record with "user_id = 1" is created in Users and Wages table
-
-select * from Users;
-
-select * from Wages;
-
-2. Test case of "update"
-
-Access source PostgreSQL container and update the record with "user_id = 1"
-
-UPDATE users SET first_name = 'first 1 updated' WHERE user_id = 1;
-
-UPDATE wages SET wage = 1000 + 1 WHERE user_id = 1;
-
-Access sink PostgreSQL container and check if the record with "user_id = 1" is updated
-
-select * from Users;
-
-select * from Wages;
-
-3. Test case of "delete"
-
-Access source PostgreSQL container and delete the record with "user_id = 1"
-
-DELETE FROM users WHERE user_id = 1;
-
-DELETE FROM wages WHERE user_id = 1;
-
-Access sink PostgreSQL container and check if the record with "user_id = 1" is deleted
-
-select * from Users;
-
-select * from Wages;
-
-
-
-# Steps to test the context 2:
-
-1. Test case of "insert"
-
-Access source PostgreSQL container and insert a record with "user_id = 2"
+Access PostgreSQL source 1 container and insert a record with "user_id = 2"
 
 INSERT INTO users VALUES(2, 'first 2', 'last 2');
 
+Access PostgreSQL source 2 container and insert a record with "user_id = 2"
+
 INSERT INTO wages VALUES(2, '2000');
 
-Access sink PostgreSQL container and check if a record with "user_id = 1" is created in User_Wages table
+Access PostgreSQL sink container and check if a record with "user_id = 2" is created in User_Wages table
 
 select * from user_wages;
 
 2. Test case of "update"
 
-Access source PostgreSQL container and update the record with "user_id = 2"
+Access PostgreSQL source 1 container and update the record with "user_id = 2"
 
 UPDATE users SET first_name = 'first 2 updated' WHERE user_id = 2;
 
+Access PostgreSQL source 2 container and update the record with "user_id = 2"
+
 UPDATE wages SET wage = 2000 + 1 WHERE user_id = 2;
 
-Access sink PostgreSQL container and check if the record with "user_id = 2" is updated
+Access PostgreSQL sink container and check if the record with "user_id = 2" is updated
 
 select * from user_wages;
 
 3. Test case of "delete"
 
-Access source PostgreSQL container and delete the record with "user_id = 2"
+Access PostgreSQL source 1 container and delete the record with "user_id = 2"
 
 DELETE FROM users WHERE user_id = 2;
 
+Access PostgreSQL source 2 container and delete the record with "user_id = 2"
+
 DELETE FROM wages WHERE user_id = 2;
 
-Access sink PostgreSQL container and check if the record with "user_id = 2" is deleted
+Access PostgreSQL sink container and check if the record with "user_id = 2" is deleted
 
 select * from user_wages;
 
